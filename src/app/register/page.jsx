@@ -20,7 +20,7 @@ export default function RegisterPage() {
     catch (requestError) { setError(requestError.message); }
     finally { setLoading(false); }
   }
-  return <main><h1>Crear cuenta</h1><form onSubmit={handleSubmit}>
+  return <main><h1>Crear cuenta</h1><form noValidate onSubmit={handleSubmit}>
     <label>Nombre<input name="firstname" value={form.firstname} onChange={handleChange} /></label>
     <label>Apellido<input name="lastname" value={form.lastname} onChange={handleChange} /></label>
     <label>DNI<input name="dni" type="number" value={form.dni} onChange={handleChange} /></label>
