@@ -46,7 +46,7 @@ El Sprint 1 incluye:
 - Ruta `/home` protegida para usuarios autenticados.
 - Cierre de sesión con eliminación del token.
 - Casos de prueba manuales clasificados en Smoke y Regression.
-- Cuatro pruebas automatizadas con Playwright.
+- - Cuatro pruebas automatizadas con Playwright y una prueba de navegación con Selenium.
 - Deploy público en Vercel.
 
 ## Enlaces
