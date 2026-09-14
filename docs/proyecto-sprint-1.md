@@ -24,6 +24,9 @@ El frontend consume la API REST provista por Digital House para registrar usuari
 | US-08 | Crear casos de prueba manuales | Completado |
 | US-09 | Automatizar controles críticos con Playwright | Completado |
 | US-10 | Desplegar la aplicación en Vercel | Completado |
+| US-11 | Ajustar landing, registro y login a las referencias de Figma | Completado |
+| US-12 | Implementar verificación de email simulada con código de 6 dígitos | Completado |
+| US-13 | Implementar recuperación de contraseña simulada | Completado |
 
 ## Planificación
 
@@ -46,8 +49,13 @@ El Sprint 1 incluye:
 - Ruta `/home` protegida para usuarios autenticados.
 - Cierre de sesión con eliminación del token.
 - Casos de prueba manuales clasificados en Smoke y Regression.
-- - Cuatro pruebas automatizadas con Playwright y una prueba de navegación con Selenium.
+- Cuatro pruebas automatizadas con Playwright y una prueba de navegación con Selenium.
 - Deploy público en Vercel.
+- Interfaz adaptada a las referencias Desktop, Tablet y Mobile de Figma.
+- Verificación de email simulada con el código local `123456`.
+- Recuperación de contraseña simulada con el código local `654321`.
+
+> Nota: las funciones opcionales se simulan en el frontend porque la API provista no incluye endpoints para enviar/validar códigos ni cambiar contraseñas.
 
 ## Enlaces
 

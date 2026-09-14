@@ -5,28 +5,168 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { registerUser } from "../../services/authService";
 
+const passwordPattern =
+  /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,20}$/;
+
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ firstname: "", lastname: "", dni: "", phone: "", email: "", password: "" });
+
+  const [form, setForm] = useState({
+    firstname: "",
+    lastname: "",
+    dni: "",
+    phone: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  function handleChange(event) { const { name, value } = event.target; setForm({ ...form, [name]: value }); }
-  async function handleSubmit(event) {
-    event.preventDefault(); setError("");
-    if (Object.values(form).some((value) => value.trim() === "")) { setError("Completá todos los campos."); return; }
-    if (!form.email.includes("@")) { setError("Ingresá un email válido."); return; }
-    if (form.password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres."); return; }
-    try { setLoading(true); await registerUser({ ...form, dni: Number(form.dni) }); router.push("/login"); }
-    catch (requestError) { setError(requestError.message); }
-    finally { setLoading(false); }
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setForm({ ...form, [name]: value });
   }
-  return <main><h1>Crear cuenta</h1><form noValidate onSubmit={handleSubmit}>
-    <label>Nombre<input name="firstname" value={form.firstname} onChange={handleChange} /></label>
-    <label>Apellido<input name="lastname" value={form.lastname} onChange={handleChange} /></label>
-    <label>DNI<input name="dni" type="number" value={form.dni} onChange={handleChange} /></label>
-    <label>Teléfono<input name="phone" type="tel" value={form.phone} onChange={handleChange} /></label>
-    <label>Email<input name="email" type="email" value={form.email} onChange={handleChange} /></label>
-    <label>Contraseña<input name="password" type="password" value={form.password} onChange={handleChange} /></label>
-    {error && <p role="alert">{error}</p>}<button disabled={loading}>{loading ? "Creando cuenta..." : "Crear cuenta"}</button>
-  </form><p>¿Ya tenés una cuenta? <Link href="/login">Iniciá sesión</Link></p></main>;
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
+
+    if (Object.values(form).some((value) => value.trim() === "")) {
+      setError("Completá todos los campos.");
+      return;
+    }
+
+    if (!form.email.includes("@")) {
+      setError("Ingresá un correo electrónico válido.");
+      return;
+    }
+
+    if (!passwordPattern.test(form.password)) {
+      setError(
+        "La contraseña debe tener entre 6 y 20 caracteres, una mayúscula, un número y un carácter especial."
+      );
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await registerUser({
+        firstname: form.firstname,
+        lastname: form.lastname,
+        dni: Number(form.dni),
+        phone: form.phone,
+        email: form.email,
+        password: form.password,
+      });
+
+      router.push("/register/success");
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="auth-page">
+      <header className="auth-header">
+        <Link className="brand" href="/" aria-label="Digital Money House">
+          DMH
+        </Link>
+
+        <Link className="auth-header-button" href="/login">
+          Iniciar sesión
+        </Link>
+      </header>
+
+      <section className="auth-content">
+        <h1>Crear cuenta</h1>
+
+        <form className="register-form" noValidate onSubmit={handleSubmit}>
+          <input
+            name="firstname"
+            placeholder="Nombre*"
+            value={form.firstname}
+            onChange={handleChange}
+          />
+
+          <input
+            name="lastname"
+            placeholder="Apellido*"
+            value={form.lastname}
+            onChange={handleChange}
+          />
+
+          <input
+            name="dni"
+            type="number"
+            placeholder="DNI*"
+            value={form.dni}
+            onChange={handleChange}
+          />
+
+          <input
+            name="email"
+            type="email"
+            placeholder="Correo electrónico*"
+            value={form.email}
+            onChange={handleChange}
+          />
+
+          <p className="password-help">
+            Usa entre 6 y 20 caracteres (debe contener al menos 1 carácter
+            especial, una mayúscula y un número).
+          </p>
+
+          <span />
+
+          <input
+            name="password"
+            type="password"
+            placeholder="Contraseña*"
+            value={form.password}
+            onChange={handleChange}
+          />
+
+          <input
+            name="confirmPassword"
+            type="password"
+            placeholder="Confirmar contraseña*"
+            value={form.confirmPassword}
+            onChange={handleChange}
+          />
+
+          <input
+            name="phone"
+            type="tel"
+            placeholder="Teléfono*"
+            value={form.phone}
+            onChange={handleChange}
+          />
+
+          <button disabled={loading}>
+            {loading ? "Creando cuenta..." : "Crear cuenta"}
+          </button>
+
+          {error && (
+            <p className="register-error" role="alert">
+              {error}
+            </p>
+          )}
+        </form>
+      </section>
+
+      <footer className="auth-footer">
+        © 2022 Digital Money House
+      </footer>
+    </main>
+  );
 }
