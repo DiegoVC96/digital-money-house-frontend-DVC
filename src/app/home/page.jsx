@@ -151,7 +151,7 @@ export default function HomePage() {
           <Link className="sidebar-link active" href="/home">Inicio</Link>
           <Link className="sidebar-link" href="/activity">Actividad</Link>
           <Link className="sidebar-link" href="/profile">Tu perfil</Link>
-          <button className="sidebar-link" type="button">Cargar dinero</button>
+          <Link className="sidebar-link" href="/deposit">Cargar dinero</Link>
           <button className="sidebar-link" type="button">Pagar servicios</button>
           <Link className="sidebar-link" href="/cards">Tarjetas</Link>
           <button

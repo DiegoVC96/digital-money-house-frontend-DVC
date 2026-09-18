@@ -70,3 +70,13 @@ export function deleteCard(token, accountId, cardId) {
     })
   );
 }
+
+export function createDeposit(token, accountId, depositData) {
+  return api(
+    `/api/accounts/${accountId}/deposits`,
+    authorizedOptions(token, {
+      method: "POST",
+      body: JSON.stringify(depositData),
+    })
+  );
+}
