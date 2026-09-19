@@ -4,56 +4,134 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { logoutUser } from "../../../services/authService";
-import { getAccount } from "../../../services/accountService";
+import {
+  getAccount,
+  getTransaction,
+} from "../../../services/accountService";
+import { useAuth } from "../../../context/AuthContext";
+import { useRequireAuth } from "../../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../../hooks/useSessionErrorHandler";
+
+function formatAmount(value) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+  }).format(value);
+}
+
+function formatDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Fecha no disponible";
+  }
+
+  return new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(date);
+}
 
 function DepositSuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [account, setAccount] = useState(null);
+  const [transaction, setTransaction] = useState(null);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const amount = Number(searchParams.get("amount")) || 0;
-  const origin = searchParams.get("origin") || "Tarjeta asociada";
-  const operation = searchParams.get("operation") || "No disponible";
+  const transactionId = Number(searchParams.get("transactionId"));
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.replace("/login");
+    if (!isReady || !token) {
       return;
     }
 
-    getAccount(token)
-      .then(setAccount)
-      .catch(() => router.replace("/login"));
-  }, [router]);
+    if (!Number.isInteger(transactionId) || transactionId <= 0) {
+      router.replace("/activity");
+      return;
+    }
+
+    async function loadReceipt() {
+      setLoading(true);
+      setMessage("");
+
+      try {
+        const accountData = await getAccount(token);
+        const transactionData = await getTransaction(
+          token,
+          accountData.id,
+          transactionId
+        );
+
+        setAccount(accountData);
+        setTransaction(transactionData);
+      } catch (error) {
+        if (handleSessionError(error)) {
+          return;
+        }
+
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "No pudimos cargar el comprobante."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadReceipt();
+  }, [handleSessionError, isReady, router, token, transactionId]);
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
     try {
-      await logoutUser(token);
+      if (token) {
+        await logoutUser(token);
+      }
     } finally {
-      localStorage.removeItem("token");
-      router.push("/");
+      endSession();
+      router.replace("/");
     }
   }
 
-  const formattedAmount = new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-  }).format(amount);
+  if (!isReady || loading) {
+    return null;
+  }
 
-  const formattedDate = new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "long",
-    timeStyle: "short",
-  }).format(new Date());
+  if (!transaction) {
+    return (
+      <main className="dashboard-page">
+        <p className="form-message error" role="alert">
+          {message || "No pudimos encontrar este comprobante."}
+        </p>
+
+        <Link className="primary-action" href="/activity">
+          Ver actividad
+        </Link>
+      </main>
+    );
+  }
+
+  const amount = Number(transaction.amount ?? 0);
+  const origin = transaction.origin || "No disponible";
+  const destination =
+    transaction.destination || "Cuenta Digital Money House";
+  const operation = transaction.id || transactionId;
 
   return (
     <main className="dashboard-page deposit-page">
       <header className="dashboard-header">
-        <Link className="dashboard-brand" href="/" aria-label="Digital Money House">
+        <Link
+          className="dashboard-brand"
+          href="/"
+          aria-label="Digital Money House"
+        >
           DMH
         </Link>
 
@@ -74,13 +152,29 @@ function DepositSuccessPageContent() {
 
       <aside className={`dashboard-sidebar ${menuOpen ? "open" : ""}`}>
         <nav aria-label="Navegación principal">
-          <Link className="sidebar-link" href="/home">Inicio</Link>
-          <Link className="sidebar-link" href="/activity">Actividad</Link>
-          <Link className="sidebar-link" href="/profile">Tu perfil</Link>
-          <Link className="sidebar-link active" href="/deposit">Cargar dinero</Link>
-          <button className="sidebar-link" type="button">Pagar servicios</button>
-          <Link className="sidebar-link" href="/cards">Tarjetas</Link>
-          <button className="sidebar-link logout-link" type="button" onClick={handleLogout}>
+          <Link className="sidebar-link" href="/home">
+            Inicio
+          </Link>
+          <Link className="sidebar-link" href="/activity">
+            Actividad
+          </Link>
+          <Link className="sidebar-link" href="/profile">
+            Tu perfil
+          </Link>
+          <Link className="sidebar-link active" href="/deposit">
+            Cargar dinero
+          </Link>
+          <button className="sidebar-link" type="button">
+            Pagar servicios
+          </button>
+          <Link className="sidebar-link" href="/cards">
+            Tarjetas
+          </Link>
+          <button
+            className="sidebar-link logout-link"
+            type="button"
+            onClick={handleLogout}
+          >
             Cerrar sesión
           </button>
         </nav>
@@ -94,12 +188,14 @@ function DepositSuccessPageContent() {
 
           <div className="receipt-heading">
             <h1>Comprobante de ingreso</h1>
-            <p>{formattedDate}</p>
+            <p>{formatDate(transaction.dated)}</p>
           </div>
 
           <section className="receipt-card">
             <span className="receipt-label">Ingreso de dinero</span>
-            <strong className="receipt-amount">{formattedAmount}</strong>
+            <strong className="receipt-amount">
+              {formatAmount(amount)}
+            </strong>
 
             <div className="receipt-route">
               <div className="receipt-route-item">
@@ -115,7 +211,7 @@ function DepositSuccessPageContent() {
                 <span className="route-dot" />
                 <div>
                   <small>Para</small>
-                  <strong>Cuenta Digital Money House</strong>
+                  <strong>{destination}</strong>
                   <p>CVU: {account?.cvu || "No disponible"}</p>
                 </div>
               </div>

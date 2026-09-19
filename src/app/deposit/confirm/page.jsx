@@ -9,6 +9,9 @@ import {
   getAccount,
   getCards,
 } from "../../../services/accountService";
+import { useAuth } from "../../../context/AuthContext";
+import { useRequireAuth } from "../../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../../hooks/useSessionErrorHandler";
 
 function getCardType(number) {
   const value = String(number);
@@ -32,6 +35,9 @@ function getCardType(number) {
 
 function DepositConfirmPageContent() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const searchParams = useSearchParams();
   const cardId = searchParams.get("cardId");
   const amount = Number(searchParams.get("amount"));
@@ -43,10 +49,7 @@ function DepositConfirmPageContent() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.replace("/login");
+    if (!isReady || !token) {
       return;
     }
 
@@ -72,12 +75,20 @@ function DepositConfirmPageContent() {
         setAccount(accountData);
         setCard(selected);
       } catch (error) {
-        setMessage(error.message);
-      }
+  if (handleSessionError(error)) {
+    return;
+  }
+
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No pudimos cargar la información necesaria."
+  );
+}
     }
 
     loadSummary();
-  }, [amount, cardId, router]);
+  }, [amount, cardId, handleSessionError, endSession, isReady, router, token]);
 
   function formatAmount(value) {
     return new Intl.NumberFormat("es-AR", {
@@ -91,7 +102,11 @@ function DepositConfirmPageContent() {
       setSaving(true);
       setMessage("");
 
-      const token = localStorage.getItem("token");
+      if (!token || !account || !card) {
+        setMessage("Tu sesión ya no está disponible. Iniciá sesión nuevamente.");
+        return;
+      }
+
       const cardType = getCardType(card.number_id);
       const lastFour = String(card.number_id).slice(-4);
 
@@ -102,33 +117,51 @@ function DepositConfirmPageContent() {
         destination: "Cuenta Digital Money House",
       });
 
-      const params = new URLSearchParams({
-        amount: String(amount),
-        origin: `${cardType} terminada en ${lastFour}`,
-        operation: String(deposit?.id || ""),
-      });
+      const transactionId = Number(deposit?.id);
+
+      if (!Number.isInteger(transactionId) || transactionId <= 0) {
+        throw new Error("No recibimos un identificador válido para la operación.");
+      }
+
+      router.push(
+        `/deposit/success?transactionId=${encodeURIComponent(
+          String(transactionId)
+        )}`
+      );
 
       router.push(`/deposit/success?${params.toString()}`);
     } catch (error) {
-      setMessage(error.message);
-    } finally {
+  if (handleSessionError(error)) {
+    return;
+  }
+
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No fue posible realizar el ingreso."
+  );
+} finally {
       setSaving(false);
     }
   }
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
-    try {
+  try {
+    if (token) {
       await logoutUser(token);
-    } finally {
-      localStorage.removeItem("token");
-      router.push("/");
     }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
 
   const cardType = card ? getCardType(card.number_id) : "Tarjeta";
   const lastFour = card ? String(card.number_id).slice(-4) : "----";
+
+  if (!isReady) {
+    return null;
+  }
 
   return (
     <main className="dashboard-page deposit-page">

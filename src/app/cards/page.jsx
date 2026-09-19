@@ -9,6 +9,9 @@ import {
   getAccount,
   getCards,
 } from "../../services/accountService";
+import { useAuth } from "../../context/AuthContext";
+import { useRequireAuth } from "../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../hooks/useSessionErrorHandler";
 
 function getCardType(number) {
   const value = String(number);
@@ -28,6 +31,9 @@ function getCardType(number) {
 
 export default function CardsPage() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const [allowed, setAllowed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [account, setAccount] = useState(null);
@@ -37,10 +43,7 @@ export default function CardsPage() {
 
   useEffect(() => {
     async function loadCards() {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        router.replace("/login");
+      if (!isReady || !token) {
         return;
       }
 
@@ -52,23 +55,31 @@ export default function CardsPage() {
         setCards(Array.isArray(cardData) ? cardData : []);
         setAllowed(true);
       } catch (requestError) {
-        setMessage(requestError.message);
-      } finally {
+  if (handleSessionError(requestError)) {
+    return;
+  }
+
+  setMessage(
+    requestError instanceof Error
+      ? requestError.message
+      : "No fue posible cargar las tarjetas."
+  );
+} finally {
         setLoading(false);
       }
     }
 
     loadCards();
-  }, [router]);
+  }, [handleSessionError, isReady, token]);
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
     try {
-      await logoutUser(token);
+      if (token) {
+        await logoutUser(token);
+      }
     } finally {
-      localStorage.removeItem("token");
-      router.push("/");
+      endSession();
+      router.replace("/");
     }
   }
 
@@ -78,13 +89,29 @@ export default function CardsPage() {
     }
 
     try {
-      const token = localStorage.getItem("token");
+      if (!token || !account) {
+        return;
+      }
       await deleteCard(token, account.id, cardId);
-      setCards(cards.filter((card) => card.id !== cardId));
+      setCards((currentCards) =>
+        currentCards.filter((card) => card.id !== cardId)
+      );
       setMessage("Tarjeta eliminada.");
     } catch (requestError) {
-      setMessage(requestError.message);
-    }
+  if (handleSessionError(requestError)) {
+    return;
+  }
+
+  setMessage(
+    requestError instanceof Error
+      ? requestError.message
+      : "No fue posible eliminar la tarjeta."
+  );
+}
+  }
+
+  if (!isReady) {
+    return null;
   }
 
   if (loading) {

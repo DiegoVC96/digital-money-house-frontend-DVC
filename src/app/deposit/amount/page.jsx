@@ -5,6 +5,9 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { logoutUser } from "../../../services/authService";
 import { getAccount, getCards } from "../../../services/accountService";
+import { useAuth } from "../../../context/AuthContext";
+import { useRequireAuth } from "../../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../../hooks/useSessionErrorHandler";
 
 function getCardType(number) {
   const value = String(number);
@@ -28,6 +31,9 @@ function getCardType(number) {
 
 function DepositAmountPageContent() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const searchParams = useSearchParams();
   const cardId = searchParams.get("cardId");
 
@@ -37,10 +43,7 @@ function DepositAmountPageContent() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.replace("/login");
+    if (!isReady || !token) {
       return;
     }
 
@@ -65,12 +68,20 @@ function DepositAmountPageContent() {
 
         setCard(selected);
       } catch (error) {
-        setMessage(error.message);
-      }
+  if (handleSessionError(error)) {
+    return;
+  }
+
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No pudimos cargar la información necesaria."
+  );
+}
     }
 
     loadCard();
-  }, [cardId, router]);
+  }, [cardId, endSession, handleSessionError, isReady, router, token]);
 
   function handleContinue(event) {
     event.preventDefault();
@@ -88,18 +99,22 @@ function DepositAmountPageContent() {
   }
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
-    try {
+  try {
+    if (token) {
       await logoutUser(token);
-    } finally {
-      localStorage.removeItem("token");
-      router.push("/");
     }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
 
   const cardType = card ? getCardType(card.number_id) : "Tarjeta";
   const lastFour = card ? String(card.number_id).slice(-4) : "----";
+
+  if (!isReady) {
+    return null;
+  }
 
   return (
     <main className="dashboard-page deposit-page">

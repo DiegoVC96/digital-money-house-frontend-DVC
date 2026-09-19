@@ -1,30 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { logoutUser } from "../../services/authService";
+import { useAuth } from "../../context/AuthContext";
+import { useRequireAuth } from "../../hooks/useRequireAuth";
 
 export default function DepositPage() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    if (!localStorage.getItem("token")) {
-      router.replace("/login");
-    }
-  }, [router]);
-
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
-    try {
+  try {
+    if (token) {
       await logoutUser(token);
-    } finally {
-      localStorage.removeItem("token");
-      router.push("/");
     }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
+
+if (!isReady) {
+  return null;
+}
 
   return (
     <main className="dashboard-page deposit-page">

@@ -45,6 +45,13 @@ export function getAccountActivity(token, accountId) {
   );
 }
 
+export function getTransaction(token, accountId, transactionId) {
+  return api(
+    `/api/accounts/${accountId}/transactions/${transactionId}`,
+    authorizedOptions(token)
+  );
+}
+
 export function getCards(token, accountId) {
   return api(
     `/api/accounts/${accountId}/cards`,

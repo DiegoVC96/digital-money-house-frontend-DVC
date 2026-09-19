@@ -10,6 +10,9 @@ import {
   updateAlias,
   updateUser,
 } from "../../services/accountService";
+import { useAuth } from "../../context/AuthContext";
+import { useRequireAuth } from "../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../hooks/useSessionErrorHandler";
 
 const emptyProfile = {
   email: "",
@@ -21,6 +24,9 @@ const emptyProfile = {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const [allowed, setAllowed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -33,10 +39,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     async function loadProfile() {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        router.replace("/login");
+      if (!isReady || !token) {
         return;
       }
 
@@ -54,25 +57,33 @@ export default function ProfilePage() {
         });
         setAllowed(true);
       } catch (requestError) {
-        setMessage(requestError.message);
-      } finally {
+  if (handleSessionError(requestError)) {
+    return;
+  }
+
+  setMessage(
+    requestError instanceof Error
+      ? requestError.message
+      : "No fue posible cargar el perfil."
+  );
+} finally {
         setLoading(false);
       }
     }
 
     loadProfile();
-  }, [router]);
+  }, [handleSessionError, isReady, token]);
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
-    try {
+  try {
+    if (token) {
       await logoutUser(token);
-    } finally {
-      localStorage.removeItem("token");
-      router.push("/");
     }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -88,7 +99,6 @@ export default function ProfilePage() {
       return;
     }
 
-    const token = localStorage.getItem("token");
     const [firstname, ...lastNameParts] = profile.fullname.trim().split(/\s+/);
 
     try {
@@ -108,8 +118,16 @@ export default function ProfilePage() {
       setEditing(false);
       setMessage("Cambios guardados correctamente.");
     } catch (requestError) {
-      setMessage(requestError.message);
-    } finally {
+  if (handleSessionError(requestError)) {
+    return;
+  }
+
+  setMessage(
+    requestError instanceof Error
+      ? requestError.message
+      : "No fue posible guardar los cambios."
+  );
+} finally {
       setSaving(false);
     }
   }
@@ -118,6 +136,10 @@ export default function ProfilePage() {
     await navigator.clipboard.writeText(value);
     setCopied(label);
     setTimeout(() => setCopied(""), 1800);
+  }
+
+  if (!isReady) {
+    return null;
   }
 
   if (loading) {

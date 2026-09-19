@@ -8,6 +8,9 @@ import {
   getAccount,
   getAccountActivity,
 } from "../../services/accountService";
+import { useAuth } from "../../context/AuthContext";
+import { useRequireAuth } from "../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../hooks/useSessionErrorHandler";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -35,6 +38,9 @@ function isIncome(movement) {
 
 export default function ActivityPage() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const [menuOpen, setMenuOpen] = useState(false);
   const [movements, setMovements] = useState([]);
   const [search, setSearch] = useState("");
@@ -46,14 +52,12 @@ export default function ActivityPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.replace("/login");
+    if (!isReady || !token) {
       return;
     }
 
     async function loadActivity() {
+      setMessage("");
       try {
         const account = await getAccount(token);
         const response = await getAccountActivity(token, account.id);
@@ -68,14 +72,22 @@ export default function ActivityPage() {
 
         setMovements(ordered);
       } catch (error) {
-        setMessage(error.message || "No pudimos cargar los movimientos.");
-      } finally {
+  if (handleSessionError(error)) {
+    return;
+  }
+
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No pudimos cargar los movimientos."
+  );
+} finally {
         setLoading(false);
       }
     }
 
     loadActivity();
-  }, [router]);
+  }, [handleSessionError, isReady, token]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -177,15 +189,19 @@ export default function ActivityPage() {
   }
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
-    try {
+  try {
+    if (token) {
       await logoutUser(token);
-    } finally {
-      localStorage.removeItem("token");
-      router.push("/");
     }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
+
+if (!isReady) {
+  return null;
+}
 
   return (
     <main className="dashboard-page activity-page">

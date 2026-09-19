@@ -9,6 +9,9 @@ import {
   getAccountActivity,
   getUser,
 } from "../../services/accountService";
+import { useAuth } from "../../context/AuthContext";
+import { useRequireAuth } from "../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../hooks/useSessionErrorHandler";
 
 function getMovementDate(movement) {
   return (
@@ -36,60 +39,69 @@ function getMovementAmount(movement) {
 
 export default function HomePage() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const [account, setAccount] = useState(null);
   const [user, setUser] = useState(null);
   const [activities, setActivities] = useState([]);
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+  if (!isReady || !token) {
+    return;
+  }
 
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
+  async function loadDashboard() {
+    try {
+      const accountData = await getAccount(token);
+      const [userData, activityResponse] = await Promise.all([
+        getUser(token, accountData.user_id),
+        getAccountActivity(token, accountData.id),
+      ]);
 
-    async function loadDashboard() {
-      try {
-        const accountData = await getAccount(token);
-        const [userData, activityResponse] = await Promise.all([
-          getUser(token, accountData.user_id),
-          getAccountActivity(token, accountData.id),
-        ]);
+      const activity = Array.isArray(activityResponse)
+        ? activityResponse
+        : activityResponse.activities || activityResponse.data || [];
 
-        const activity = Array.isArray(activityResponse)
-          ? activityResponse
-          : activityResponse.activities || activityResponse.data || [];
+      const orderedActivity = [...activity]
+        .sort(
+          (a, b) =>
+            new Date(getMovementDate(b)) - new Date(getMovementDate(a))
+        )
+        .slice(0, 10);
 
-        const orderedActivity = [...activity]
-          .sort(
-            (a, b) =>
-              new Date(getMovementDate(b)) - new Date(getMovementDate(a))
-          )
-          .slice(0, 10);
+      setAccount(accountData);
+      setUser(userData);
+      setActivities(orderedActivity);
+    } catch (error) {
+  if (handleSessionError(error)) {
+    return;
+  }
 
-        setAccount(accountData);
-        setUser(userData);
-        setActivities(orderedActivity);
-      } catch (error) {
-        console.error(error);
-      }
-    }
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No pudimos actualizar tu información."
+  );
+}
+  }
 
-    loadDashboard();
-  }, [router]);
+  loadDashboard();
+}, [handleSessionError, isReady, token]);
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
-    try {
+  try {
+    if (token) {
       await logoutUser(token);
-    } finally {
-      localStorage.removeItem("token");
-      router.push("/");
     }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
 
   const filteredActivities = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -123,6 +135,10 @@ export default function HomePage() {
   const fullName = user
     ? `${user.firstname || ""} ${user.lastname || ""}`.trim()
     : "usuario";
+
+  if (!isReady) {
+    return null;
+  }
 
   return (
     <main className="dashboard-page">
@@ -165,6 +181,11 @@ export default function HomePage() {
       </aside>
 
       <section className="dashboard-content">
+        {message && (
+          <p className="form-message error" role="alert">
+            {message}
+          </p>
+        )}
         <section className="balance-panel">
           <div>
             <p>Dinero disponible</p>

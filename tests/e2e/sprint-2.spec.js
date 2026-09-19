@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { loginAsTestUser, mockLoginApi } from "./auth.helper";
 
 async function mockAccountApi(page) {
   await page.route("**/api/account", async (route) => {
@@ -48,18 +49,15 @@ async function mockAccountApi(page) {
       body: JSON.stringify([]),
     });
   });
-
-  await page.addInitScript(() => {
-    localStorage.setItem("token", "token-de-prueba");
-  });
 }
 
 test("muestra saldo, nombre y último movimiento en el dashboard", async ({
   page,
 }) => {
+  await mockLoginApi(page);
   await mockAccountApi(page);
 
-  await page.goto("/home");
+  await loginAsTestUser(page);
 
   await expect(page.getByText("Hola, Juan Prueba")).toBeVisible();
   await expect(page.getByText(/12\.500,50/)).toBeVisible();
@@ -69,15 +67,24 @@ test("muestra saldo, nombre y último movimiento en el dashboard", async ({
 test("muestra tarjetas vacías y permite abrir el formulario de alta", async ({
   page,
 }) => {
+  await mockLoginApi(page);
   await mockAccountApi(page);
 
-  await page.goto("/cards");
+  await loginAsTestUser(page);
+  await page
+  .getByRole("link", { name: "Tarjetas", exact: true })
+  .click();
 
   await expect(page.getByText("No tienes tarjetas asociadas.")).toBeVisible();
 
   await page.getByText("Nueva tarjeta").click();
 
-  await expect(page.getByText("Agregá una nueva tarjeta")).toBeVisible();
+  await expect(
+  page.getByRole("heading", {
+    name: "Agregá una nueva tarjeta",
+    exact: true,
+  })
+).toBeVisible();
   await expect(page.getByLabel("Número de la tarjeta*")).toBeVisible();
   await expect(page.getByLabel("Fecha de vencimiento*")).toBeVisible();
 });

@@ -5,25 +5,38 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAccount } from "../../../services/accountService";
 import { logoutUser } from "../../../services/authService";
+import { useAuth } from "../../../context/AuthContext";
+import { useRequireAuth } from "../../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../../hooks/useSessionErrorHandler";
 
 export default function ExternalDepositPage() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const [menuOpen, setMenuOpen] = useState(false);
   const [account, setAccount] = useState(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.replace("/login");
+    if (!isReady || !token) {
       return;
     }
 
     getAccount(token)
       .then(setAccount)
-      .catch(() => router.replace("/login"));
-  }, [router]);
+      .catch((error) => {
+  if (handleSessionError(error)) {
+    return;
+  }
+
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No fue posible obtener los datos de tu cuenta."
+  );
+});
+  }, [endSession, isReady, router, token]);
 
   const copyValue = async (value, label) => {
     try {
@@ -35,18 +48,22 @@ export default function ExternalDepositPage() {
   };
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
-    try {
+  try {
+    if (token) {
       await logoutUser(token);
-    } finally {
-      localStorage.removeItem("token");
-      router.push("/");
     }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
 
   const cvu = account?.cvu || "No disponible";
   const alias = account?.alias || "No disponible";
+
+  if (!isReady) {
+    return null;
+  }
 
   return (
     <main className="dashboard-page">

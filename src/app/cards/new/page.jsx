@@ -9,6 +9,9 @@ import {
   getAccount,
   getCards,
 } from "../../../services/accountService";
+import { useAuth } from "../../../context/AuthContext";
+import { useRequireAuth } from "../../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../../hooks/useSessionErrorHandler";
 
 function getCardType(number) {
   if (number.startsWith("4")) return "Visa";
@@ -25,9 +28,51 @@ function getCardType(number) {
   return "Tarjeta";
 }
 
+function passesLuhnCheck(cardNumber) {
+  let total = 0;
+  let shouldDouble = false;
+
+  for (let index = cardNumber.length - 1; index >= 0; index -= 1) {
+    let digit = Number(cardNumber[index]);
+
+    if (shouldDouble) {
+      digit *= 2;
+
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    total += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  return total % 10 === 0;
+}
+
+function isFutureExpirationDate(value) {
+  const match = /^(0[1-9]|1[0-2])\/(20\d{2})$/.exec(value);
+
+  if (!match) {
+    return false;
+  }
+
+  const month = Number(match[1]);
+  const year = Number(match[2]);
+
+  const expirationMonth = new Date(year, month - 1, 1);
+  const currentMonth = new Date();
+  currentMonth.setDate(1);
+  currentMonth.setHours(0, 0, 0, 0);
+
+  return expirationMonth >= currentMonth;
+}
+
 export default function NewCardPage() {
   const router = useRouter();
-
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const [accountId, setAccountId] = useState(null);
   const [number, setNumber] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
@@ -40,10 +85,7 @@ export default function NewCardPage() {
   const cardType = getCardType(cleanNumber);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.replace("/login");
+    if (!isReady || !token) {
       return;
     }
 
@@ -59,12 +101,20 @@ export default function NewCardPage() {
 
         setAccountId(account.id);
       } catch (error) {
-        setMessage(error.message);
-      }
+  if (handleSessionError(error)) {
+    return;
+  }
+
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No fue posible cargar los datos de la cuenta."
+  );
+}
     }
 
     loadAccount();
-  }, [router]);
+  }, [handleSessionError, isReady, token]);
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -85,16 +135,13 @@ export default function NewCardPage() {
     event.preventDefault();
     setMessage("");
 
-    const validNumber =
-      (cardType === "American Express" && cleanNumber.length === 15) ||
-      (cardType !== "American Express" && cleanNumber.length === 16);
+    const hasValidLength =
+    (cardType === "American Express" && cleanNumber.length === 15) ||
+    (cardType !== "American Express" && cleanNumber.length === 16);
 
-    if (!validNumber) {
-      setMessage("Ingresá un número de tarjeta válido.");
-      return;
-    }
+    const validNumber = hasValidLength && passesLuhnCheck(cleanNumber);
 
-    if (!/^(0[1-9]|1[0-2])\/20\d{2}$/.test(expirationDate)) {
+    if (!isFutureExpirationDate(expirationDate)) {
       setMessage("Ingresá una fecha válida con formato MM/AAAA.");
       return;
     }
@@ -112,7 +159,10 @@ export default function NewCardPage() {
     try {
       setSaving(true);
 
-      const token = localStorage.getItem("token");
+      if (!token || !accountId) {
+        setMessage("Tu sesión ya no está disponible. Iniciá sesión nuevamente.");
+        return;
+      }
 
       await createCard(token, accountId, {
         number_id: Number(cleanNumber),
@@ -123,15 +173,34 @@ export default function NewCardPage() {
 
       router.push("/cards");
     } catch (error) {
-      setMessage(error.message);
-    } finally {
+  if (handleSessionError(error)) {
+    return;
+  }
+
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No fue posible agregar la tarjeta."
+  );
+} finally {
       setSaving(false);
     }
   }
 
-  function handleLogout() {
-    logoutUser().finally(() => router.push("/"));
+  async function handleLogout() {
+  try {
+    if (token) {
+      await logoutUser(token);
+    }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
+
+if (!isReady) {
+  return null;
+}
 
   return (
     <main className="dashboard-page">

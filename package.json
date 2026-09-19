@@ -17,8 +17,10 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
-    "selenium-webdriver": "^4.49.0"
+    "selenium-webdriver": "^4.49.0",
+    "typescript": "^7.0.2"
   }
 }

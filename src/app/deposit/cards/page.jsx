@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logoutUser } from "../../../services/authService";
 import { getAccount, getCards } from "../../../services/accountService";
+import { useAuth } from "../../../context/AuthContext";
+import { useRequireAuth } from "../../../hooks/useRequireAuth";
+import { useSessionErrorHandler } from "../../../hooks/useSessionErrorHandler";
 
 function getCardType(number) {
   const value = String(number);
@@ -28,6 +31,9 @@ function getCardType(number) {
 
 export default function DepositCardsPage() {
   const router = useRouter();
+  const { token, isReady } = useRequireAuth();
+  const { endSession } = useAuth();
+  const handleSessionError = useSessionErrorHandler();
   const [menuOpen, setMenuOpen] = useState(false);
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState("");
@@ -35,7 +41,9 @@ export default function DepositCardsPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    if (!isReady || !token) {
+      return;
+    }
 
     if (!token) {
       router.replace("/login");
@@ -49,14 +57,22 @@ export default function DepositCardsPage() {
 
         setCards(Array.isArray(cardList) ? cardList : []);
       } catch (error) {
-        setMessage(error.message);
-      } finally {
+  if (handleSessionError(error)) {
+    return;
+  }
+
+  setMessage(
+    error instanceof Error
+      ? error.message
+      : "No pudimos cargar la información necesaria."
+  );
+} finally {
         setLoading(false);
       }
     }
 
     loadCards();
-  }, [router]);
+  }, [endSession, handleSessionError, isReady, router, token]);
 
   function handleContinue() {
     if (!selectedCard) {
@@ -68,15 +84,19 @@ export default function DepositCardsPage() {
   }
 
   async function handleLogout() {
-    const token = localStorage.getItem("token");
-
-    try {
+  try {
+    if (token) {
       await logoutUser(token);
-    } finally {
-      localStorage.removeItem("token");
-      router.push("/");
     }
+  } finally {
+    endSession();
+    router.replace("/");
   }
+}
+
+if (!isReady) {
+  return null;
+}
 
   return (
     <main className="dashboard-page deposit-page">

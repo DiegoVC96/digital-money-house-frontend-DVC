@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../../context/AuthContext";
 
 const passwordPattern =
   /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,20}$/;
 
 export default function ConfirmPasswordPage() {
   const router = useRouter();
-  const [hasRecoveryEmail, setHasRecoveryEmail] = useState(null);
+  const { isRecoveryFlowActive, endRecoveryFlow } = useAuth();
+
   const [form, setForm] = useState({
     code: "",
     password: "",
@@ -18,12 +20,17 @@ export default function ConfirmPasswordPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setHasRecoveryEmail(Boolean(sessionStorage.getItem("recoveryEmail")));
-  }, []);
+    if (!isRecoveryFlowActive) {
+      router.replace("/forgot-password");
+    }
+  }, [isRecoveryFlowActive, router]);
 
   function handleChange(event) {
     const { name, value } = event.target;
-    setForm({ ...form, [name]: value });
+    setForm((currentForm) => ({
+      ...currentForm,
+      [name]: value,
+    }));
   }
 
   function handleSubmit(event) {
@@ -31,7 +38,7 @@ export default function ConfirmPasswordPage() {
     setError("");
 
     if (form.code !== "654321") {
-      setError("El código de recuperación no es válido.");
+      setError("Para esta demostración, utilizá el código 654321.");
       return;
     }
 
@@ -47,17 +54,11 @@ export default function ConfirmPasswordPage() {
       return;
     }
 
-    sessionStorage.removeItem("recoveryEmail");
-    sessionStorage.setItem("passwordResetDemo", "true");
+    endRecoveryFlow();
     router.push("/login");
   }
 
-  if (hasRecoveryEmail === null) {
-    return null;
-  }
-
-  if (!hasRecoveryEmail) {
-    router.replace("/forgot-password");
+  if (!isRecoveryFlowActive) {
     return null;
   }
 
@@ -70,38 +71,70 @@ export default function ConfirmPasswordPage() {
       </header>
 
       <section className="login-content">
-        <h1>Creá una nueva contraseña</h1>
+        <h1>Demostración de nueva contraseña</h1>
+
         <p className="login-description">
+          Esta pantalla valida la experiencia visual. No modifica contraseñas
+          reales porque el backend no expone ese servicio.
+        </p>
+
+        <p className="demo-notice" role="status">
           Código de demostración: <strong>654321</strong>
         </p>
 
         <form className="login-form" noValidate onSubmit={handleSubmit}>
-          <input
-            name="code"
-            inputMode="numeric"
-            maxLength="6"
-            placeholder="Código de recuperación"
-            value={form.code}
-            onChange={handleChange}
-          />
+          <label className="sr-only" htmlFor="recovery-code">
+            Código de recuperación
+          </label>
 
           <input
+            id="recovery-code"
+            name="code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="Código de recuperación"
+            value={form.code}
+            onChange={(event) => {
+              setForm((currentForm) => ({
+                ...currentForm,
+                code: event.target.value.replace(/\D/g, ""),
+              }));
+            }}
+            required
+          />
+
+          <label className="sr-only" htmlFor="new-password">
+            Nueva contraseña
+          </label>
+
+          <input
+            id="new-password"
             name="password"
             type="password"
+            autoComplete="new-password"
             placeholder="Nueva contraseña"
             value={form.password}
             onChange={handleChange}
+            required
           />
 
+          <label className="sr-only" htmlFor="confirm-password">
+            Confirmar nueva contraseña
+          </label>
+
           <input
+            id="confirm-password"
             name="confirmPassword"
             type="password"
+            autoComplete="new-password"
             placeholder="Confirmar nueva contraseña"
             value={form.confirmPassword}
             onChange={handleChange}
+            required
           />
 
-          <button>Guardar contraseña</button>
+          <button type="submit">Finalizar demostración</button>
 
           {error && (
             <p className="login-error" role="alert">

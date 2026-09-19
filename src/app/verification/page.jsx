@@ -19,11 +19,10 @@ export default function VerificationPage() {
     }
 
     if (code !== "123456") {
-      setError("El código de verificación no es válido.");
+      setError("Para esta demostración, utilizá el código 123456.");
       return;
     }
 
-    sessionStorage.setItem("emailVerified", "true");
     router.push("/login");
   }
 
@@ -36,20 +35,34 @@ export default function VerificationPage() {
       </header>
 
       <section className="login-content">
-        <h1>Ingresá el código de verificación</h1>
+        <h1>Demostración de verificación</h1>
+
+        <p className="login-description">
+          Esta pantalla representa el flujo visual de verificación. La cuenta
+          no se modifica porque el backend no expone esa operación.
+        </p>
+
+        <p className="demo-notice" role="status">
+          Código de demostración: <strong>123456</strong>
+        </p>
 
         <form className="login-form" noValidate onSubmit={handleSubmit}>
+          <label className="sr-only" htmlFor="verification-code">
+            Código de verificación
+          </label>
+
           <input
+            id="verification-code"
             inputMode="numeric"
-            maxLength="6"
+            autoComplete="one-time-code"
+            maxLength={6}
             placeholder="Código"
             value={code}
-            onChange={(event) =>
-              setCode(event.target.value.replace(/\D/g, ""))
-            }
+            onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+            required
           />
 
-          <button>Continuar</button>
+          <button type="submit">Finalizar demostración</button>
 
           {error && (
             <p className="login-error" role="alert">
