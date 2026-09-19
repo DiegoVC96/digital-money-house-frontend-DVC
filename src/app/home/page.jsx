@@ -168,7 +168,9 @@ export default function HomePage() {
           <Link className="sidebar-link" href="/activity">Actividad</Link>
           <Link className="sidebar-link" href="/profile">Tu perfil</Link>
           <Link className="sidebar-link" href="/deposit">Cargar dinero</Link>
-          <button className="sidebar-link" type="button">Pagar servicios</button>
+          <Link className="sidebar-link" href="/services">
+            Pagar servicios
+          </Link>
           <Link className="sidebar-link" href="/cards">Tarjetas</Link>
           <button
             className="sidebar-link logout-link"
@@ -200,7 +202,7 @@ export default function HomePage() {
 
         <section className="quick-actions" aria-label="Acciones rápidas">
           <button type="button">Transferir dinero</button>
-          <button type="button">Pago de servicios</button>
+          <Link href="/services">Pago de servicios</Link>
         </section>
 
         <label className="activity-search">
