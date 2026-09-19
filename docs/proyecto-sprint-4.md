@@ -22,6 +22,26 @@ Incorporar el flujo de pago de servicios para que la persona usuaria pueda busca
 - Cada pantalla cubre una etapa única: listado, dato de cuenta, medio de pago, confirmación, error o resultado.
 - Las rutas protegidas usan el contexto de autenticación existente y redirigen a inicio de sesión cuando no hay sesión activa.
 
+## Infraestructura
+
+- Se generó un archivo Docker Compose para ejecutar la aplicación en un entorno de contenedores.
+- Se generó una imagen Docker del frontend preparada para su despliegue en infraestructura cloud de AWS.
+- La imagen permite mantener un entorno de ejecución consistente entre desarrollo, validación y despliegue.
+- El archivo `Dockerfile` utiliza una construcción multietapa y ejecuta el contenedor como un usuario sin privilegios.
+- El archivo `.dockerignore` evita incluir dependencias locales, resultados de pruebas, documentación y posibles archivos de entorno en la imagen.
+
+### Ejecución local
+
+```bash
+docker compose up --build
+```
+
+La aplicación queda disponible en `http://localhost:3000`.
+
+### Publicación de la imagen
+
+La imagen generada se identifica como `dmh-frontend:latest` por defecto. Para publicar en AWS Elastic Container Registry, se debe etiquetar con la URL del repositorio ECR y subirla después de autenticarse con AWS CLI.
+
 ## Seguridad
 
 - No se guarda token, información de tarjetas ni datos del pago en `localStorage` o `sessionStorage`.
@@ -39,4 +59,3 @@ La documentación disponible no expone un endpoint para registrar y liquidar pag
 - Pruebas E2E con Playwright: 13 aprobadas.
 - Compilación de producción con Next.js: aprobada.
 - Se incluyeron validaciones para búsqueda, identificador de cuenta, saldo insuficiente y confirmación demostrativa del Sprint 4.
-

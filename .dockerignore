@@ -1,0 +1,16 @@
+.next
+node_modules
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+test-results
+playwright-report
+outputs
+tmp
+tests
+docs
+AGENTS.md
+CLAUDE.md
+npm-debug.log*
