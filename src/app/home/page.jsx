@@ -201,7 +201,7 @@ export default function HomePage() {
         </section>
 
         <section className="quick-actions" aria-label="Acciones rápidas">
-          <button type="button">Transferir dinero</button>
+          <Link href="/deposit/external">Transferir dinero</Link>
           <Link href="/services">Pago de servicios</Link>
         </section>
 

@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { logoutUser } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useRequireAuth } from "../../hooks/useRequireAuth";
+import { useCurrentUserName } from "../../hooks/useCurrentUserName";
 
 export default function DepositPage() {
   const router = useRouter();
   const { token, isReady } = useRequireAuth();
   const { endSession } = useAuth();
+  const userName = useCurrentUserName(token, isReady);
   const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleLogout() {
@@ -37,7 +39,7 @@ if (!isReady) {
 
         <Link className="dashboard-user" href="/home">
           <span className="dashboard-avatar">MB</span>
-          <span>Hola, usuario</span>
+          <span>Hola, {userName}</span>
         </Link>
 
         <button
@@ -56,7 +58,7 @@ if (!isReady) {
           <Link className="sidebar-link" href="/activity">Actividad</Link>
           <Link className="sidebar-link" href="/profile">Tu perfil</Link>
           <Link className="sidebar-link active" href="/deposit">Cargar dinero</Link>
-          <button className="sidebar-link" type="button">Pagar servicios</button>
+          <Link className="sidebar-link" href="/services">Pagar servicios</Link>
           <Link className="sidebar-link" href="/cards">Tarjetas</Link>
           <button
             className="sidebar-link logout-link"

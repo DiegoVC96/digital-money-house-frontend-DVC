@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useRequireAuth } from "../../hooks/useRequireAuth";
 import { useSessionErrorHandler } from "../../hooks/useSessionErrorHandler";
+import { useCurrentUserName } from "../../hooks/useCurrentUserName";
 
 function getCardType(number) {
   const value = String(number);
@@ -34,6 +35,7 @@ export default function CardsPage() {
   const { token, isReady } = useRequireAuth();
   const { endSession } = useAuth();
   const handleSessionError = useSessionErrorHandler();
+  const userName = useCurrentUserName(token, isReady);
   const [allowed, setAllowed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [account, setAccount] = useState(null);
@@ -137,7 +139,7 @@ export default function CardsPage() {
 
         <Link className="dashboard-user" href="/home">
           <span className="dashboard-avatar">MB</span>
-          <span>Hola, usuario</span>
+          <span>Hola, {userName}</span>
         </Link>
 
         <button
@@ -156,7 +158,7 @@ export default function CardsPage() {
           <Link className="sidebar-link" href="/activity">Actividad</Link>
           <Link className="sidebar-link" href="/profile">Tu perfil</Link>
           <Link className="sidebar-link" href="/deposit">Cargar dinero</Link>
-          <button className="sidebar-link" type="button">Pagar servicios</button>
+          <Link className="sidebar-link" href="/services">Pagar servicios</Link>
           <Link className="sidebar-link active" href="/cards">Tarjetas</Link>
           <button className="sidebar-link logout-link" type="button" onClick={handleLogout}>
             Cerrar sesión

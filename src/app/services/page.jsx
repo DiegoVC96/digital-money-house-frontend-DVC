@@ -8,6 +8,7 @@ import { getServices } from "../../services/serviceService";
 import { useAuth } from "../../context/AuthContext";
 import { useRequireAuth } from "../../hooks/useRequireAuth";
 import { useSessionErrorHandler } from "../../hooks/useSessionErrorHandler";
+import { useCurrentUserName } from "../../hooks/useCurrentUserName";
 
 function normalizeServices(response) {
   if (Array.isArray(response)) {
@@ -39,6 +40,7 @@ export default function ServicesPage() {
   const { token, isReady } = useRequireAuth();
   const { endSession } = useAuth();
   const handleSessionError = useSessionErrorHandler();
+  const userName = useCurrentUserName(token, isReady);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [services, setServices] = useState([]);
@@ -115,7 +117,7 @@ export default function ServicesPage() {
 
         <Link className="dashboard-user" href="/home">
           <span className="dashboard-avatar">MB</span>
-          <span>Hola, usuario</span>
+          <span>Hola, {userName}</span>
         </Link>
 
         <button
