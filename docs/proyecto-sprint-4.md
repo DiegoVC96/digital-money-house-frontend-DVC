@@ -13,6 +13,7 @@ Incorporar el flujo de pago de servicios para que la persona usuaria pueda busca
 - Pantalla de confirmación con el importe y medio de pago seleccionados.
 - Manejo de saldo insuficiente antes de continuar.
 - Pantalla de resultado demostrativa y retorno a inicio o listado de servicios.
+- Descarga del comprobante mediante el diálogo nativo para guardar como PDF.
 - Navegación responsive integrada con el dashboard existente.
 
 ## Arquitectura

@@ -87,6 +87,7 @@ npm run build
 - Selección de medio de pago.
 - Manejo de saldo insuficiente.
 - Confirmación y resultado demostrativo del pago.
+- Descarga de comprobantes mediante el diálogo nativo para guardar como PDF.
 
 ## Arquitectura y seguridad
 

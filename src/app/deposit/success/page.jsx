@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { useRequireAuth } from "../../../hooks/useRequireAuth";
 import { useSessionErrorHandler } from "../../../hooks/useSessionErrorHandler";
+import { downloadReceiptPdf } from "../../../services/receiptPdfService";
 
 function formatAmount(value) {
   return new Intl.NumberFormat("es-AR", {
@@ -124,6 +125,17 @@ function DepositSuccessPageContent() {
     transaction.destination || "Cuenta Digital Money House";
   const operation = transaction.id || transactionId;
 
+  function handleDownloadReceipt() {
+    downloadReceiptPdf({
+      title: "Comprobante de ingreso",
+      date: formatDate(transaction.dated),
+      amount: formatAmount(amount),
+      origin,
+      destination,
+      operation,
+    });
+  }
+
   return (
     <main className="dashboard-page deposit-page">
       <header className="dashboard-header">
@@ -224,6 +236,14 @@ function DepositSuccessPageContent() {
           </section>
 
           <div className="receipt-actions">
+            <button
+              className="secondary-action"
+              type="button"
+              onClick={handleDownloadReceipt}
+            >
+              Descargar comprobante PDF
+            </button>
+
             <Link className="secondary-action" href="/activity">
               Ver actividad
             </Link>

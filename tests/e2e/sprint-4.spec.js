@@ -142,4 +142,7 @@ test("muestra confirmación y éxito en modo demostración", async ({ page }) =>
   await expect(
     page.getByText(/Comprobante de demostración/)
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Descargar comprobante PDF" })
+  ).toBeVisible();
 });

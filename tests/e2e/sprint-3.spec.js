@@ -160,4 +160,7 @@ test("muestra el comprobante al completar un ingreso", async ({ page }) => {
   await expect(page.getByText("Visa terminada en 4242")).toBeVisible();
   await expect(page.getByText("2555")).toBeVisible();
   await expect(page.getByText(/\$.*100,00/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Descargar comprobante PDF" })
+  ).toBeVisible();
 });

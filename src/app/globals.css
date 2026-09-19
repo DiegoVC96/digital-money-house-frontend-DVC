@@ -2261,6 +2261,12 @@ main.dashboard-page .service-account-panel label {
   color: #fff;
 }
 
+button.secondary-button {
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
 .service-confirm-content {
   width: min(976px, calc(100% - 48px));
   margin: 54px auto;

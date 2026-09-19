@@ -8,6 +8,7 @@ import { getServiceById } from "../../../services/serviceService";
 import { useAuth } from "../../../context/AuthContext";
 import { useRequireAuth } from "../../../hooks/useRequireAuth";
 import { useServicePayment } from "../../../context/ServicePaymentContext";
+import { downloadReceiptPdf } from "../../../services/receiptPdfService";
 
 function formatAmount(value) {
   return new Intl.NumberFormat("es-AR", {
@@ -56,6 +57,24 @@ export default function ServicePaymentSuccessPage() {
       endSession();
       router.replace("/");
     }
+  }
+
+  function handleDownloadReceipt() {
+    downloadReceiptPdf({
+      title: "Comprobante de pago demostrativo",
+      date: new Intl.DateTimeFormat("es-AR", {
+        dateStyle: "long",
+        timeStyle: "short",
+      }).format(new Date()),
+      amount: formatAmount(completedPayment.amount),
+      origin:
+        completedPayment.paymentMethod?.type === "balance"
+          ? "Dinero en cuenta"
+          : "Tarjeta asociada",
+      destination: service.name,
+      operation: "DEMO",
+      note: "Operación demostrativa. No se generó un cargo real.",
+    });
   }
 
   return (
@@ -120,6 +139,14 @@ export default function ServicePaymentSuccessPage() {
           </p>
 
           <div className="service-result-actions">
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={handleDownloadReceipt}
+            >
+              Descargar comprobante PDF
+            </button>
+
             <Link className="secondary-button" href="/services">
               Ver servicios
             </Link>
