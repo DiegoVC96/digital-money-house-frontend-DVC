@@ -11,16 +11,16 @@ interface RequiredAuth {
 
 export function useRequireAuth(): RequiredAuth {
   const router = useRouter();
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, isAuthReady } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isAuthReady && !isAuthenticated) {
       router.replace("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthReady, isAuthenticated, router]);
 
   return {
     token,
-    isReady: isAuthenticated,
+    isReady: isAuthReady && isAuthenticated,
   };
 }

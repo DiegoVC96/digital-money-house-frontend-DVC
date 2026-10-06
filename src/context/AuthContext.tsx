@@ -4,16 +4,20 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
+
+const SESSION_STORAGE_KEY = "dmh.session.token";
 
 interface AuthContextValue {
   token: string | null;
   pendingEmail: string | null;
   isRecoveryFlowActive: boolean;
   isAuthenticated: boolean;
+  isAuthReady: boolean;
   startSession: (token: string) => void;
   endSession: () => void;
   setPendingEmail: (email: string) => void;
@@ -30,14 +34,33 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [pendingEmail, setPendingEmailState] = useState<string | null>(null);
   const [isRecoveryFlowActive, setIsRecoveryFlowActive] = useState(false);
 
+  useEffect(() => {
+    const storedToken = window.localStorage.getItem(SESSION_STORAGE_KEY);
+
+    if (storedToken) {
+      setToken(storedToken);
+    }
+
+    setIsAuthReady(true);
+  }, []);
+
   const startSession = useCallback((newToken: string) => {
-    setToken(newToken);
+    const normalizedToken = newToken.trim();
+
+    if (!normalizedToken) {
+      return;
+    }
+
+    window.localStorage.setItem(SESSION_STORAGE_KEY, normalizedToken);
+    setToken(normalizedToken);
   }, []);
 
   const endSession = useCallback(() => {
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
     setToken(null);
     setPendingEmailState(null);
     setIsRecoveryFlowActive(false);
@@ -65,6 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       pendingEmail,
       isRecoveryFlowActive,
       isAuthenticated: token !== null,
+      isAuthReady,
       startSession,
       endSession,
       setPendingEmail,
@@ -76,6 +100,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       token,
       pendingEmail,
       isRecoveryFlowActive,
+      isAuthReady,
       startSession,
       endSession,
       setPendingEmail,

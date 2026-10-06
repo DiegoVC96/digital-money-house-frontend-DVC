@@ -45,7 +45,7 @@ La imagen generada se identifica como `dmh-frontend:latest` por defecto. Para pu
 
 ## Seguridad
 
-- No se guarda token, información de tarjetas ni datos del pago en `localStorage` o `sessionStorage`.
+- No se guardan información de tarjetas ni datos del pago en `localStorage` o `sessionStorage`. El token de sesión se conserva en `localStorage` para mantener la sesión en el entorno académico; en producción debe migrarse a una cookie `HttpOnly`, `Secure` y `SameSite` emitida por el backend.
 - El identificador de cuenta se normaliza a dígitos y se valida por longitud antes de avanzar.
 - El saldo se valida en la interfaz para evitar intentar un pago cuando no hay fondos suficientes.
 - No se usa `dangerouslySetInnerHTML`; los valores dinámicos se renderizan con React.

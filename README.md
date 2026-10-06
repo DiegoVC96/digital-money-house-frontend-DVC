@@ -93,7 +93,7 @@ npm run build
 
 - Next.js 16 y React 19.
 - Servicios separados de las pantallas y contextos para autenticación y borradores temporales.
-- Token de sesión y datos temporales solo en memoria: no se persisten en `localStorage` ni `sessionStorage`.
+- La sesión se conserva al recargar mediante `localStorage`, como requiere el entorno académico. En producción, el backend debería reemplazarlo por una cookie `HttpOnly`, `Secure` y `SameSite`.
 - Validación de entradas antes de avanzar en los flujos.
 - Encabezados de seguridad: CSP, protección contra framing, `nosniff`, política de referentes, permisos restringidos y aislamiento de ventanas.
 - Imagen Docker multietapa con ejecución mediante usuario sin privilegios.
